@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>깃허브 활용 가이드 2026 — 박혜원</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&family=Montserrat:wght@300;700;900&display=swap');
+
+  :root {
+    --bg:       #0a0e1a;
+    --surface:  #111827;
+    --border:   #1e2d45;
+    --accent1:  #4f8ef7;
+    --accent2:  #a78bfa;
+    --accent3:  #34d399;
+    --text:     #e2e8f0;
+    --muted:    #64748b;
+    --white:    #ffffff;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    font-family: 'Noto Sans KR', sans-serif;
+    color: var(--text);
+  }
+
+  /* ── 슬라이드 컨테이너 ── */
+  .deck { width: 100vw; height: 100vh; position: relative; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    padding: 5vw 6vw;
+    opacity: 0;
+    transform: translateX(60px);
+    transition: opacity .55s cubic-bezier(.4,0,.2,1),
+                transform .55s cubic-bezier(.4,0,.2,1);
+    pointer-events: none;
+  }
+  .slide.active {
+    opacity: 1; transform: translateX(0); pointer-events: auto;
+  }
+  .slide.exit {
+    opacity: 0; transform: translateX(-60px);
+  }
+
+  /* ── 배경 장식 ── */
+  .bg-grid {
+    position: fixed; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(79,142,247,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(79,142,247,.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+  .bg-blob {
+    position: fixed; z-index: 0; border-radius: 50%;
+    filter: blur(90px); opacity: .18; pointer-events: none;
+  }
+  .blob1 { width: 500px; height: 500px; background: var(--accent1); top: -150px; left: -100px; }
+  .blob2 { width: 400px; height: 400px; background: var(--accent2); bottom: -120px; right: -80px; }
+  .blob3 { width: 300px; height: 300px; background: var(--accent3); top: 40%; left: 55%; }
+
+  /* ── 공통 콘텐츠 래퍼 ── */
+  .content { position: relative; z-index: 1; width: 100%; max-width: 1100px; }
+
+  /* ── 슬라이드 번호 ── */
+  .slide-num {
+    position: fixed; bottom: 2.2rem; right: 2.8rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .78rem; color: var(--muted); z-index: 10;
+    letter-spacing: .08em;
+  }
+
+  /* ── 진행바 ── */
+  .progress-bar {
+    position: fixed; bottom: 0; left: 0; height: 3px;
+    background: linear-gradient(90deg, var(--accent1), var(--accent2));
+    transition: width .5s ease;
+    z-index: 10;
+  }
+
+  /* ── 네비 힌트 ── */
+  .nav-hint {
+    position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+    font-size: .75rem; color: var(--muted); z-index: 10;
+    letter-spacing: .06em;
+  }
+
+  /* ════════════════════════════════
+     슬라이드 1 — 타이틀
+  ════════════════════════════════ */
+  .s1-team {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .85rem; color: var(--accent3);
+    letter-spacing: .18em; margin-bottom: 1.4rem;
+  }
+  .s1-title {
+    font-family: 'Montserrat', 'Noto Sans KR', sans-serif;
+    font-weight: 900;
+    font-size: clamp(2.6rem, 5.5vw, 5rem);
+    line-height: 1.08;
+    color: var(--white);
+    margin-bottom: .6rem;
+  }
+  .s1-title span { color: var(--accent1); }
+  .s1-year {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 300; font-size: clamp(1.4rem, 2.8vw, 2.2rem);
+    color: var(--muted); margin-bottom: 2.6rem;
+    letter-spacing: .12em;
+  }
+  .s1-sub {
+    font-size: clamp(.9rem, 1.4vw, 1.1rem);
+    color: var(--muted); line-height: 1.8;
+  }
+  .s1-author {
+    margin-top: 2.8rem;
+    display: inline-flex; align-items: center; gap: .9rem;
+    background: rgba(79,142,247,.1);
+    border: 1px solid rgba(79,142,247,.25);
+    border-radius: 40px;
+    padding: .6rem 1.4rem;
+  }
+  .s1-author-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent1); }
+  .s1-author span { font-size: .88rem; color: var(--text); }
+
+  /* ════════════════════════════════
+     공통 — 섹션 헤더
+  ════════════════════════════════ */
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .75rem; letter-spacing: .2em;
+    color: var(--accent3); margin-bottom: 1rem;
+    text-transform: uppercase;
+  }
+  .slide-title {
+    font-family: 'Montserrat', 'Noto Sans KR', sans-serif;
+    font-weight: 700;
+    font-size: clamp(1.8rem, 3.5vw, 3rem);
+    color: var(--white); line-height: 1.2;
+    margin-bottom: .5rem;
+  }
+  .slide-title .accent { color: var(--accent1); }
+  .divider {
+    width: 52px; height: 3px;
+    background: linear-gradient(90deg, var(--accent1), var(--accent2));
+    border-radius: 2px; margin: 1.2rem 0 1.8rem;
+  }
+  .body-text {
+    font-size: clamp(.88rem, 1.3vw, 1.05rem);
+    line-height: 1.9; color: #94a3b8;
+  }
+
+  /* ════════════════════════════════
+     목차 슬라이드
+  ════════════════════════════════ */
+  .toc-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem; margin-top: .5rem;
+  }
+  .toc-item {
+    display: flex; align-items: center; gap: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.1rem 1.4rem;
+    transition: border-color .25s, transform .25s;
+  }
+  .toc-item:hover { border-color: var(--accent1); transform: translateY(-2px); }
+  .toc-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.3rem; font-weight: 600;
+    color: var(--accent1); min-width: 2rem;
+  }
+  .toc-text { font-size: .92rem; color: var(--text); font-weight: 500; }
+
+  /* ════════════════════════════════
+     스텝 카드
+  ════════════════════════════════ */
+  .steps { display: flex; flex-direction: column; gap: .85rem; }
+  .step-item {
+    display: flex; align-items: flex-start; gap: 1.2rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.1rem 1.4rem;
+  }
+  .step-num {
+    min-width: 2rem; height: 2rem;
+    background: linear-gradient(135deg, var(--accent1), var(--accent2));
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .78rem; font-weight: 600; color: #fff;
+    flex-shrink: 0; margin-top: .05rem;
+  }
+  .step-content { flex: 1; }
+  .step-title { font-weight: 600; color: var(--text); font-size: .95rem; margin-bottom: .2rem; }
+  .step-desc { font-size: .84rem; color: var(--muted); line-height: 1.6; }
+
+  /* ════════════════════════════════
+     코드 블록
+  ════════════════════════════════ */
+  .code-block {
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+    padding: 1.2rem 1.5rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(.75rem, 1.1vw, .88rem);
+    color: #c9d1d9;
+    line-height: 1.7;
+    margin: .8rem 0;
+    overflow-x: auto;
+  }
+  .code-block .kw { color: #ff7b72; }
+  .code-block .str { color: #a5d6ff; }
+  .code-block .cm { color: #8b949e; font-style: italic; }
+  .code-block .cmd { color: #79c0ff; }
+  .code-block .val { color: #a5d6ff; }
+
+  /* ════════════════════════════════
+     팁 박스
+  ════════════════════════════════ */
+  .tip-box {
+    display: flex; align-items: flex-start; gap: 1rem;
+    background: rgba(52,211,153,.07);
+    border: 1px solid rgba(52,211,153,.25);
+    border-radius: 10px;
+    padding: 1rem 1.3rem;
+    margin-top: 1rem;
+  }
+  .tip-icon { font-size: 1.1rem; margin-top: .05rem; }
+  .tip-text { font-size: .85rem; color: #94a3b8; line-height: 1.7; }
+
+  /* ════════════════════════════════
+     2단 레이아웃
+  ════════════════════════════════ */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.8rem; }
+  .col-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.6rem;
+  }
+  .col-card-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .78rem; letter-spacing: .14em;
+    color: var(--accent2); margin-bottom: 1rem;
+    text-transform: uppercase;
+  }
+
+  /* ════════════════════════════════
+     테이블 슬라이드
+  ════════════════════════════════ */
+  .link-table {
+    width: 100%; border-collapse: collapse;
+    font-size: clamp(.75rem, 1.1vw, .9rem);
+    margin-top: .5rem;
+  }
+  .link-table th {
+    background: rgba(79,142,247,.12);
+    color: var(--accent1); font-weight: 600;
+    text-align: left; padding: .8rem 1rem;
+    border-bottom: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .78rem; letter-spacing: .06em;
+  }
+  .link-table td {
+    padding: .75rem 1rem;
+    border-bottom: 1px solid rgba(30,45,69,.6);
+    color: #94a3b8; vertical-align: middle;
+  }
+  .link-table tr:last-child td { border-bottom: none; }
+  .link-table tr:hover td { background: rgba(79,142,247,.04); }
+  .link-table .name { color: var(--text); font-weight: 500; }
+  .link-table .url {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .78rem; color: var(--accent1);
+  }
+  .link-table .me { color: var(--accent3); font-weight: 700; }
+  .link-table .me-url { color: var(--accent3); font-family: 'JetBrains Mono', monospace; font-size: .78rem; }
+
+  /* ════════════════════════════════
+     팀원 카드
+  ════════════════════════════════ */
+  .team-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: .9rem; margin-top: .5rem;
+  }
+  .member-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.1rem;
+    text-align: center;
+    transition: border-color .25s;
+  }
+  .member-card.me { border-color: var(--accent1); }
+  .member-card:hover { border-color: var(--accent2); }
+  .member-avatar {
+    width: 46px; height: 46px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent1), var(--accent2));
+    margin: 0 auto .7rem;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; color: #fff; font-weight: 700;
+  }
+  .member-name { font-size: .88rem; font-weight: 600; color: var(--text); }
+  .member-dept { font-size: .76rem; color: var(--muted); margin-top: .2rem; }
+
+  /* ════════════════════════════════
+     마지막 슬라이드
+  ════════════════════════════════ */
+  .end-title {
+    font-family: 'Montserrat', 'Noto Sans KR', sans-serif;
+    font-weight: 900;
+    font-size: clamp(3rem, 7vw, 6.5rem);
+    line-height: 1; color: var(--white);
+    margin-bottom: 1.4rem;
+    text-align: center;
+  }
+  .end-title .g {
+    background: linear-gradient(90deg, var(--accent1), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .end-sub {
+    font-size: clamp(.9rem, 1.4vw, 1.1rem);
+    color: var(--muted); text-align: center;
+    line-height: 1.9; max-width: 520px;
+  }
+  .end-tag {
+    margin-top: 2.4rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .82rem; color: var(--accent3);
+    letter-spacing: .15em;
+  }
+
+  /* ════════════════════════════════
+     플로우 다이어그램 (텍스트형)
+  ════════════════════════════════ */
+  .flow {
+    display: flex; align-items: center;
+    gap: 0; margin: 1rem 0; flex-wrap: wrap;
+  }
+  .flow-node {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: .7rem 1.1rem;
+    font-size: .85rem; font-weight: 500;
+    color: var(--text); white-space: nowrap;
+  }
+  .flow-node.hl {
+    border-color: var(--accent1);
+    background: rgba(79,142,247,.1);
+    color: var(--accent1);
+  }
+  .flow-arrow {
+    font-size: 1.1rem; color: var(--muted);
+    padding: 0 .5rem;
+  }
+
+  /* ════════════════════════════════
+     배지
+  ════════════════════════════════ */
+  .badge {
+    display: inline-block;
+    background: rgba(79,142,247,.15);
+    border: 1px solid rgba(79,142,247,.3);
+    border-radius: 20px;
+    padding: .2rem .75rem;
+    font-size: .78rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent1);
+    margin-right: .4rem; margin-bottom: .4rem;
+  }
+
+  /* ════════════════════════════════
+     애니메이션 — 슬라이드 내부 요소
+  ════════════════════════════════ */
+  .slide.active .anim-in {
+    animation: fadeUp .5s ease both;
+  }
+  .slide.active .anim-in:nth-child(2) { animation-delay: .08s; }
+  .slide.active .anim-in:nth-child(3) { animation-delay: .16s; }
+  .slide.active .anim-in:nth-child(4) { animation-delay: .24s; }
+  .slide.active .anim-in:nth-child(5) { animation-delay: .32s; }
+  .slide.active .anim-in:nth-child(6) { animation-delay: .40s; }
+  .slide.active .anim-in:nth-child(7) { animation-delay: .48s; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<!-- 배경 -->
+<div class="bg-grid"></div>
+<div class="bg-blob blob1"></div>
+<div class="bg-blob blob2"></div>
+<div class="bg-blob blob3"></div>
+
+<div class="deck" id="deck">
+
+  <!-- ══ 슬라이드 1 — 타이틀 ══ -->
+  <div class="slide active" data-index="0">
+    <div class="content">
+      <p class="s1-team anim-in"># 7팀 · 박혜원</p>
+      <h1 class="s1-title anim-in">깃허브 활용<br><span>가이드</span></h1>
+      <p class="s1-year anim-in">2026</p>
+      <p class="s1-sub anim-in">
+        GitHub 리포지터리 생성부터 Pages 퍼블리시까지<br>
+        생성형 AI와 함께하는 협업 워크플로우 완전 정복
+      </p>
+      <div class="s1-author anim-in">
+        <div class="s1-author-dot"></div>
+        <span>박혜원 · 영문 23 · Ewha Womans University</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 슬라이드 2 — 목차 ══ -->
+  <div class="slide" data-index="1">
+    <div class="content">
+      <p class="section-label anim-in">Contents</p>
+      <h2 class="slide-title anim-in">목차</h2>
+      <div class="divider anim-in"></div>
+      <div class="toc-grid anim-in">
+        <div class="toc-item"><span class="toc-num">01</span><span class="toc-text">GitHub란 무엇인가</span></div>
+        <div class="toc-item"><span class="toc-num">02</span><span class="toc-text">신규 리포지터리 생성</span></div>
+        <div class="toc-item"><span class="toc-num">03</span><span class="toc-text">기본 파일 생성 · 업로드</span></div>
+        <div class="toc-item"><span class="toc-num">04</span><span class="toc-text">Git 설치 및 초기 설정</span></div>
+        <div class="toc-item"><span class="toc-num">05</span><span class="toc-text">클론 · 커밋 · 푸시</span></div>
+        <div class="toc-item"><span class="toc-num">06</span><span class="toc-text">GitHub Pages 퍼블리시</span></div>
+        <div class="toc-item"><span class="toc-num">07</span><span class="toc-text">팀 협업 리포지터리</span></div>
+        <div class="toc-item"><span class="toc-num">08</span><span class="toc-text">팀 링크 정리 · 마무리</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 슬라이드 3 — GitHub란? ══ -->
+  <div class="slide" data-index="2">
+    <div class="content">
+      <p class="section-label anim-in">01 · GitHub 소개</p>
+      <h2 class="slide-title anim-in">GitHub란 <span class="accent">무엇인가</span></h2>
+      <div class="divider anim-in"></div>
+      <div class="two-col anim-in">
+        <div class="col-card">
+          <p class="col-card-title">🐙 GitHub</p>
+          <p class="body-text">Git 버전 관리 시스템을 기반으로 한 <strong style="color:var(--text)">클라우드 코드 호스팅 플랫폼</strong>입니다. 개발자들이 코드를 저장하고, 변경 이력을 추적하며, 협업할 수 있는 공간을 제공합니다.</p>
+        </div>
+        <div class="col-card">
+          <p class="col-card-title">⚡ 핵심 개념</p>
+          <p class="body-text">
+            <span style="color:var(--accent1)">Repository</span> — 프로젝트 폴더<br>
+            <span style="color:var(--accent1)">Commit</span> — 변경 사항 저장<br>
+            <span style="color:var(--accent1)">Push / Pull</span> — 원격 동기화<br>
+            <span style="color:var(--accent1)">Branch</span> — 독립 작업 공간
+          </p>
+        </div>
+      </div>
+      <div class="tip-box anim-in">
+        <span class="tip-icon">💡</span>
+        <span class="tip-text">GitHub Pages 기능을 이용하면 리포지터리에 올린 HTML 파일을 무료 웹사이트로 바로 공개할 수 있습니다. 별도 서버 없이도 누구나 접근 가능한 URL이 생성됩니다.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 슬라이드 4 — 전체 워크플로우 ══ -->
+  <div class="slide" data-index="3">
+    <div class="content">
+      <p class="section-label anim-in">Overview</p>
+      <h2 class="slide-title anim-in">전체 <span class="accent">워크플로우</span></h2>
+      <div class="divider anim-in"></div>
+      <p class="body-text anim-in">이 가이드에서 다룰 전체 흐름을 먼저 파악합니다.</p>
+      <div style="display:flex; flex-direction:column; gap:.7rem; margin-top:1.2rem;">
+        <div class="flow anim-in">
+          <div class="flow-node hl">① GitHub 계정 생성</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node hl">② 리포지터리 생성</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node hl">③ 파일 업로드</div>
+        </div>
+        <div class="flow anim-in">
+          <div class="flow-node hl">④ 로컬 클론</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node hl">⑤ 수정 · 커밋 · 푸시</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node hl">⑥ Pages 퍼블리시</div>
+        </div>
+      </div>
+      <div class="tip-box anim-in" style="margin-top:1.4rem;">
+        <span class="tip-icon">🤖</span>
+        <span class="tip-text">이 프레젠테이션은 <strong style="color:var(--text)">Claude (Anthropic)</strong> 생성형 AI 서비스를 활용하여 제작되었습니다.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 슬라이드 5 — 리포지터리 생성 (1) ══ -->
+  <div class="slide" data-index="4">
+    <div class="content">
+      <p class="section-label anim-in">02 · 리포지터리 생성</p>
+      <h2 class="slide-title anim-in">GitHub 접속 및 <span class="accent">로그인</span></h2>
+      <div class="divider anim-in"></div>
+      <div class="steps anim-in">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <p class="step-title">브라우저에서 GitHub 접속</p>
+            <p class="step-desc"><span style="color:var(--accent1);font-family:'JetBrains Mono',monospace">https://github.com</span> 에 접속합니다.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <p class="step-title">로그인</p>
+            <p class="step-desc">우측 상단 <strong style="color:var(--text)">[Sign in]</strong> 버튼을 클릭하여 계정으로 로그인합니다. 계정이 없다면 [Sign up]으로 먼저 가입합니다.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <p class="step-title">새 리포지터리 시작</p>
+            <p class="step-desc">우측 상단 <strong style="color:var(--text)">[+]</strong> 버튼 → <strong style="color:var(--text)">[New repository]</strong> 클릭</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 슬라이드 6 — 리포지터리 생성 (2) ══ -->
+  <div class="slide" data-index="5">
+    <div class="content">
+      <p class="section-label anim-in">02 · 리포지터리 생성</p>
+      <h2 class="slide-title anim-in">리포지터리 <span class="accent">옵션 설정</span></h2>
+      <div class="divider anim-in"></div>
+      <div class="steps anim-in">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <p class="step-title">이름 입력</p>
+            <p class="step-desc">Repository name에 <span style="color:var(--accent1);font-family:'JetBrains Mono',monospace">vibe-coding</span> 입력 (팀 전원 동일한 이름 사용)</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <p class="step-title">공개 범위 선택</p>
+            <p class="step-desc"><strong style="color:var(--text)">Public</strong>으로 설정 — GitHub Pages 퍼블리시에 필요합니다.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <p class="step-title">README 초기화</p>
+            <p class="step-desc"><strong style="color:var(--text)">Initialize this repository with a README</strong> 체크 → <strong style="color:var(--text)">[Create repository]</strong> 클릭</p>
+          </div>
+        </div>
+      </div>
+      <div class="tip-box anim-in">
+        <span class="tip-icon">💡</span>
+        <span class="tip-text">이름은 영문 소문자, 숫자, 하이픈(-)만 사용하는 것을 권장합니다.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 슬라이드 7 — 파일 업로드 ══ -->
+  <div class="slide" data-index="6">
+    <div class="content">
+      <p class="section-label anim-in">03 · 파일 생성 · 업로드</p>
+      <h2 class="slide-title anim-in">기본 파일 <span class="accent">업로드 방법</span></h2>
+      <div class="divider anim-in"></div>
+      <div class="two-col anim-in">
+        <div class="col-card">
+          <p class="col-card-title">🌐 웹에서 직접 만들기</p>
+          <div class="steps" style="gap:.6rem">
+            <div class="step-item" style="padding:.8rem 1rem">
+              <div class="step-num" style="width:1.6rem;height:1.6rem;font-size:.7rem">1</div>
+              <div class="step-content"><p class="step-desc">[Add file] → [Create new file]</p></div>
+            </div>
+            <div class="step-item" style="padding:.8rem 1rem">
+              <div class="step-num" style="width:1.6rem;height:1.6rem;font-size:.7rem">2</div>
+              <div class="step-content"><p class="step-desc">파일명 입력 (예: <span style="color:var(--accent1);font-family:'JetBrains Mono',monospace">index.html</span>)</p></div>
+            </div>
+            <div class="step-item" style="padding:.8rem 1rem">
+              <div class="step-num" style="width:1.6rem;height:1.6rem;font-size:.7rem">3</div>
+              <div class="step-content"><p class="step-desc">내용 작성 → [Commit changes]</p></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-card">
+          <p class="col-card-title">📁 로컬 파일 업로드</p>
+          <div class="steps" style="gap:.6rem">
+            <div class="step-item" style="padding:.8rem 1rem">
+              <div class="step-num" style="width:1.6rem;height:1.6rem;font-size:.7rem">1</div>
+              <div class="step-content"><p class="step-desc">[Add file] → [Upload files]</p></div>
+            </div>
+            <div class="step-item" style="padding:.8rem 1rem">
+              <div class="step-num" style="width:1.6rem;height:1.6rem;font-size:.7rem">2</div>
+              <div class="step-content"><p class="step-desc">파일 선택 또는 드래그 앤 드롭</p></div>
+            </div>
+            <div class="step-item" style="padding:.8rem 1rem">
+              <div class="step-num" style="width:1.6rem;height:1.6rem;font-size:.7rem">3</div>
+              <div class="step-content"><p class="step-desc">커밋 메시지 입력 → [Commit changes]</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tip-box anim-in">
+        <span class="tip-icon">💡</span>
+        <span class="tip-text">Pages가 정상 표시되려면 루트 경로에 반드시 <span style="color:var(--accent1);font-family:'JetBrains Mono',monospace">index.html</span> 파일이 있어야 합니다.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 슬라이드 8 — Git 설치 및 설정 ══ -->
+  <div class="slide" data-index="7">
+    <div class="content">
+      <p class="section-label anim-in">04 · Git 설치 · 설정</p>
+      <h2 class="slide-title anim-in">Git 설치 및 <span class="accent">초기 설정</span></h2>
+      <div class="divider anim-in"></div>
+      <div class="steps anim-in">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <p class="step-title">Git 다운로드</p>
+            <p class="step-desc"><span style="color:var(--accent1);font-family:'JetBrains Mono',monospace">https://git-scm.com</span> 에서 운영체제(Windows / macOS)에 맞는 버전을 다운로드하여 설치합니다.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <p class="step-title">사용자 정보 설정</p>
+            <p class="step-desc">터미널(또는 Git Bash)을 열고 아래 명령어를 실행합니다.</p>
+          </div>
+        </div>
+      </div>
+      <div class="code-block anim-in">
+<span class="cm"># 이름 설정</span>
+<span class="cmd">git config</span> --global user.name <span class="str">"박혜원"</span>
+
+<span class="cm"># 이메일 설정</span>
+<span class="cmd">git config</span> --global user.email <span class="str">"dreamphw10@ewhain.net"</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 슬라이드 9 — 클론 ══ -->
+  <div class="slide" data-index="8">
+    <div class="content">
+      <p class="section-label anim-in">05 · 클론 · 커밋 · 푸시</p>
+      <h2 class="slide-title anim-in">리포지터리 <span class="accent">클론</span></h2>
+      <div class="divider anim-in"></div>
+      <p class="body-text anim-in">GitHub 리포지터리를 내 컴퓨터로 복사하는 작업입니다.</p>
+      <div class="steps anim-in" style="margin-top:1rem">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <p class="step-title">HTTPS 주소 복사</p>
+            <p class="step-desc">리포지터리 페이지에서 <strong style="color:var(--text)">[Code]</strong> 버튼 → HTTPS 탭의 주소를 복사합니다.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <p class="step-title">클론 실행</p>
+            <p class="step-desc">터미널에서 원하는 폴더로 이동한 후 아래 명령어를 실행합니다.</p>
+          </div>
+        </div>
+      </div>
+      <div class="code-block anim-in">
+<span class="cmd">git clone</span> <span class="str">https://github.com/HyewonPark-2390035/vibe-coding.git</span>
+
+<span class="cm"># 클론된 폴더로 이동</span>
+<span class="cmd">cd</span> vibe-coding
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 슬라이드 10 — 커밋 · 푸시 ══ -->
+  <div class="slide" data-index="9">
+    <div class="content">
+      <p class="section-label anim-in">05 · 클론 · 커밋 · 푸시</p>
+      <h2 class="slide-title anim-in">커밋 · <span class="accent">푸시</span></h2>
+      <div class="divider anim-in"></div>
+      <p class="body-text anim-in">파일을 수정한 후 변경 사항을 GitHub에 반영하는 과정입니다.</p>
+      <div class="code-block anim-in">
+<span class="cm"># 1. 변경 파일 스테이징 (모든 파일)</span>
+<span class="cmd">git add</span> .
+
+<span class="cm"># 2. 커밋 (변경 이력 저장)</span>
+<span class="cmd">git commit</span> -m <span class="str">"파일 수정: index.html 내용 업데이트"</span>
+
+<span class="cm"># 3. 원격 저장소에 반영</span>
+<span class="cmd">git push</span> origin main
+      </div>
+      <div class="tip-box anim-in">
+        <span class="tip-icon">💡</span>
+        <span class="tip-text"><span style="color:var(--accent1);font-family:'JetBrains Mono',monospace">git add .</span> 은 현재 폴더의 모든 변경 파일을 추가합니다. 특정 파일만 올리려면 <span style="color:var(--accent1);font-family:'JetBrains Mono',monospace">git add 파일명</span> 을 사용하세요.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 슬라이드 11 — Pages 퍼블리시 ══ -->
+  <div class="slide" data-index="10">
+    <div class="content">
+      <p class="section-label anim-in">06 · GitHub Pages</p>
+      <h2 class="slide-title anim-in">GitHub Pages <span class="accent">퍼블리시</span></h2>
+      <div class="divider anim-in"></div>
+      <div class="steps anim-in">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <p class="step-title">Settings 이동</p>
+            <p class="step-desc">리포지터리 페이지 상단 탭에서 <strong style="color:var(--text)">[Settings]</strong> 클릭</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <p class="step-title">Pages 메뉴 선택</p>
+            <p class="step-desc">좌측 메뉴에서 <strong style="color:var(--text)">[Pages]</strong> 클릭</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <p class="step-title">Source 설정</p>
+            <p class="step-desc">브랜치 <strong style="color:var(--text)">main</strong>, 폴더 <strong style="color:var(--text)">/ (root)</strong> 선택 → <strong style="color:var(--text)">[Save]</strong></p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <p class="step-title">URL 확인</p>
+            <p class="step-desc">약 1~3분 후 배포 URL이 상단에 표시됩니다. <span style="color:var(--accent1);font-family:'JetBrains Mono',monospace">https://[username].github.io/[repo-name]/</span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 슬라이드 12 — 팀 협업 리포지터리 ══ -->
+  <div class="slide" data-index="11">
+    <div class="content">
+      <p class="section-label anim-in">07 · 팀 협업</p>
+      <h2 class="slide-title anim-in">팀 협업 <span class="accent">리포지터리</span></h2>
+      <div class="divider anim-in"></div>
+      <div class="two-col anim-in">
+        <div class="col-card">
+          <p class="col-card-title">📋 생성 방법</p>
+          <div class="steps" style="gap:.55rem">
+            <div class="step-item" style="padding:.8rem 1rem">
+              <div class="step-num" style="width:1.6rem;height:1.6rem;font-size:.7rem">1</div>
+              <div class="step-content"><p class="step-desc">팀원 중 한 명이 대표로 리포지터리 생성</p></div>
+            </div>
+            <div class="step-item" style="padding:.8rem 1rem">
+              <div class="step-num" style="width:1.6rem;height:1.6rem;font-size:.7rem">2</div>
+              <div class="step-content"><p class="step-desc">이름: <span style="color:var(--accent1);font-family:'JetBrains Mono',monospace">vibe-coding-team</span></p></div>
+            </div>
+            <div class="step-item" style="padding:.8rem 1rem">
+              <div class="step-num" style="width:1.6rem;height:1.6rem;font-size:.7rem">3</div>
+              <div class="step-content"><p class="step-desc">Settings → Collaborators → 팀원 전원 초대</p></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-card">
+          <p class="col-card-title">🔄 협업 워크플로우</p>
+          <p class="body-text" style="font-size:.85rem">
+            1. 팀 리포지터리 클론<br>
+            2. 각자 파일 작업<br>
+            3. <span style="color:var(--accent1);font-family:'JetBrains Mono',monospace">git pull</span> → 최신 상태 유지<br>
+            4. <span style="color:var(--accent1);font-family:'JetBrains Mono',monospace">git add → commit → push</span><br>
+            5. 팀 Pages에 자동 반영
+          </p>
+          <div class="tip-box" style="margin-top:1rem">
+            <span class="tip-icon">⚠️</span>
+            <span class="tip-text" style="font-size:.8rem">push 전 반드시 pull을 먼저 해서 충돌을 방지하세요.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 슬라이드 13 — 팀 링크 정리 ══ -->
+  <div class="slide" data-index="12">
+    <div class="content">
+      <p class="section-label anim-in">08 · 링크 정리</p>
+      <h2 class="slide-title anim-in">#7팀 <span class="accent">리포지터리 · Pages</span></h2>
+      <div class="divider anim-in"></div>
+      <div class="anim-in" style="overflow-x:auto">
+        <table class="link-table">
+          <thead>
+            <tr>
+              <th>이름</th>
+              <th>학과</th>
+              <th>GitHub 리포지터리</th>
+              <th>Pages URL</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="name">박민교</td><td>철학 22</td><td>—</td><td>—</td></tr>
+            <tr>
+              <td class="name me">박혜원 ★</td>
+              <td>영문 23</td>
+              <td class="me-url">HyewonPark-2390035/vibe-coding</td>
+              <td class="me-url">hyewonpark-2390035.github.io/vibe-coding</td>
+            </tr>
+            <tr><td class="name">송은채</td><td>경영 24</td><td>—</td><td>—</td></tr>
+            <tr><td class="name">안은서</td><td>커미 21</td><td class="url">es-an/vibe-coding</td><td class="url">es-an.github.io/vibe-coding/</td></tr>
+            <tr><td class="name">우민정</td><td>경영 23</td><td class="url">minjeong-woo/vibe-coding</td><td class="url">minjeong-woo.github.io/vibe-coding/</td></tr>
+            <tr><td class="name">조현지</td><td>통계 22</td><td class="url">hyeonji343/vibe-coding</td><td class="url">hyeonji343.github.io/vibe-coding/</td></tr>
+            <tr><td class="name">Ei Shwe Sin</td><td>경영 23</td><td class="url">eishwesin1499-blip/vibe-coding</td><td class="url">eishwesin1499-blip.github.io/vibe-coding/</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 슬라이드 14 — 팀원 소개 ══ -->
+  <div class="slide" data-index="13">
+    <div class="content">
+      <p class="section-label anim-in">Team</p>
+      <h2 class="slide-title anim-in">#7팀 <span class="accent">팀원 소개</span></h2>
+      <div class="divider anim-in"></div>
+      <div class="team-grid anim-in">
+        <div class="member-card">
+          <div class="member-avatar">민</div>
+          <div class="member-name">박민교</div>
+          <div class="member-dept">철학 22</div>
+        </div>
+        <div class="member-card me">
+          <div class="member-avatar" style="background:linear-gradient(135deg,var(--accent3),var(--accent1))">혜</div>
+          <div class="member-name" style="color:var(--accent3)">박혜원 ★</div>
+          <div class="member-dept">영문 23</div>
+        </div>
+        <div class="member-card">
+          <div class="member-avatar">채</div>
+          <div class="member-name">송은채</div>
+          <div class="member-dept">경영 24</div>
+        </div>
+        <div class="member-card">
+          <div class="member-avatar">서</div>
+          <div class="member-name">안은서</div>
+          <div class="member-dept">커미 21</div>
+        </div>
+        <div class="member-card">
+          <div class="member-avatar">정</div>
+          <div class="member-name">우민정</div>
+          <div class="member-dept">경영 23</div>
+        </div>
+        <div class="member-card">
+          <div class="member-avatar">지</div>
+          <div class="member-name">조현지</div>
+          <div class="member-dept">통계 22</div>
+        </div>
+        <div class="member-card">
+          <div class="member-avatar" style="font-size:.8rem">Ei</div>
+          <div class="member-name">Ei Shwe Sin</div>
+          <div class="member-dept">경영 23</div>
+        </div>
+        <div class="member-card" style="border-style:dashed;opacity:.4">
+          <div class="member-avatar" style="background:var(--muted)">?</div>
+          <div class="member-name">팀원</div>
+          <div class="member-dept">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 슬라이드 15 — 마무리 ══ -->
+  <div class="slide" data-index="14">
+    <div class="content" style="display:flex;flex-direction:column;align-items:center;text-align:center">
+      <p class="section-label anim-in" style="text-align:center">Thank You</p>
+      <h2 class="end-title anim-in"><span class="g">감사합니다</span></h2>
+      <p class="end-sub anim-in">
+        GitHub 활용 가이드 2026<br>
+        생성형 AI와 함께하는 협업 워크플로우<br><br>
+        <span style="color:var(--accent1)">#7팀 · 박혜원</span><br>
+        영어영문학과 23학번 · 이화여자대학교
+      </p>
+      <div class="end-tag anim-in">
+        <span class="badge">GitHub Pages</span>
+        <span class="badge">Git</span>
+        <span class="badge">Claude AI</span>
+        <span class="badge">HTML</span>
+      </div>
+      <p class="end-tag anim-in" style="margin-top:1.4rem;font-size:.78rem;color:var(--muted)">
+        ← → 키 또는 클릭으로 슬라이드 이동
+      </p>
+    </div>
+  </div>
+
+</div><!-- /deck -->
+
+<!-- UI 오버레이 -->
+<div class="progress-bar" id="progress"></div>
+<div class="slide-num" id="slideNum">01 / 15</div>
+<div class="nav-hint" id="navHint">← → 키 또는 클릭으로 이동 · F11 전체화면</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progressBar = document.getElementById('progress');
+  const slideNum = document.getElementById('slideNum');
+  const navHint = document.getElementById('navHint');
+  const total = slides.length;
+  let current = 0;
+  let animating = false;
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+
+  function goTo(idx){
+    if(animating) return;
+    if(idx < 0 || idx >= total) return;
+    animating = true;
+
+    const old = slides[current];
+    const next = slides[idx];
+
+    old.classList.add('exit');
+    old.classList.remove('active');
+
+    setTimeout(()=>{
+      old.classList.remove('exit');
+    }, 600);
+
+    next.classList.add('active');
+
+    current = idx;
+    progressBar.style.width = ((current+1)/total*100)+'%';
+    slideNum.textContent = pad(current+1)+' / '+pad(total);
+
+    // 힌트 숨기기 (3초 후)
+    navHint.style.opacity = '1';
+    clearTimeout(window._hintTimer);
+    window._hintTimer = setTimeout(()=>{ navHint.style.opacity='0'; }, 3000);
+
+    setTimeout(()=>{ animating = false; }, 600);
+  }
+
+  // 키보드
+  document.addEventListener('keydown', e=>{
+    if(e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown'){
+      e.preventDefault(); goTo(current+1);
+    } else if(e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp'){
+      e.preventDefault(); goTo(current-1);
+    } else if(e.key === 'Home'){ goTo(0); }
+    else if(e.key === 'End'){ goTo(total-1); }
+    else if(e.key === 'f' || e.key === 'F'){ toggleFS(); }
+  });
+
+  // 마우스 클릭
+  document.getElementById('deck').addEventListener('click', e=>{
+    const x = e.clientX;
+    if(x > window.innerWidth * .5) goTo(current+1);
+    else goTo(current-1);
+  });
+
+  // 터치 스와이프
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e=>{ touchStartX = e.touches[0].clientX; },{passive:true});
+  document.addEventListener('touchend', e=>{
+    const dx = touchStartX - e.changedTouches[0].clientX;
+    if(Math.abs(dx) > 50){ dx > 0 ? goTo(current+1) : goTo(current-1); }
+  },{passive:true});
+
+  // 전체화면
+  function toggleFS(){
+    if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+    else document.exitFullscreen();
+  }
+
+  // 초기
+  goTo(0);
+  navHint.style.transition = 'opacity .4s';
+  setTimeout(()=>{ navHint.style.opacity='0'; }, 4000);
+
+  // 진행바 초기
+  progressBar.style.width = (1/total*100)+'%';
+</script>
+</body>
+</html>
